@@ -1,0 +1,112 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Simple Lambda Function with Function URL
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 128
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      InlineCode: |
+        import json
+        import pprint
+        from datetime import datetime
+        
+        def process_user_data(user_id, metadata=[]):
+            # BUG: Mutable default argument - list persists between calls!
+            metadata.append({
+                'timestamp': datetime.now().isoformat(),
+                'user_id': user_id,
+                'processed': True
+            })
+            return metadata
+        
+        def lambda_handler(event, context):
+            # Extract URL parameters
+            query_params = event.get('queryStringParameters') or {}
+            multi_value_params = event.get('multiValueQueryStringParameters') or {}
+            
+            # Extract headers
+            headers = event.get('headers') or {}
+            multi_value_headers = event.get('multiValueHeaders') or {}
+            
+            # Pretty print event
+            event_str = pprint.pformat(event, indent=2, width=80)
+            
+            # Pretty print context attributes
+            context_attrs = {
+                'function_name': context.function_name,
+                'function_version': context.function_version,
+                'invoked_function_arn': context.invoked_function_arn,
+                'memory_limit_in_mb': context.memory_limit_in_mb,
+                'remaining_time_in_millis': context.get_remaining_time_in_millis(),
+                'log_group_name': context.log_group_name,
+                'log_stream_name': context.log_stream_name,
+                'aws_request_id': context.aws_request_id
+            }
+            context_str = pprint.pformat(context_attrs, indent=2, width=80)
+            
+            # Format headers section
+            headers_section = ""
+            if headers or multi_value_headers:
+                headers_formatted = pprint.pformat(headers, indent=2, width=80)
+                multi_headers_formatted = pprint.pformat(multi_value_headers, indent=2, width=80)
+                headers_section = "\nHEADERS:\nHeaders: " + headers_formatted + "\nMulti-Value Headers: " + multi_headers_formatted + "\n"
+            else:
+                headers_section = "\nHEADERS:\nNo headers found"
+            
+            # Format URL parameters section
+            url_params_section = ""
+            if query_params or multi_value_params:
+                query_formatted = pprint.pformat(query_params, indent=2, width=80)
+                multi_query_formatted = pprint.pformat(multi_value_params, indent=2, width=80)
+                url_params_section = "\nURL PARAMETERS:\nQuery Parameters: " + query_formatted + "\nMulti-Value Parameters: " + multi_query_formatted + "\n"
+            else:
+                url_params_section = "\nURL PARAMETERS:\nNo URL parameters found"
+            
+            # DEMO: Demonstrate the mutable default argument bug
+            user_id = query_params.get('user_id', 'anonymous')
+            
+            # Call the buggy function - notice how metadata accumulates!
+            result1 = process_user_data(user_id)
+            result2 = process_user_data(user_id + "_second")
+            
+            bug_demo = "BUG DEMONSTRATION - Mutable Default Argument:\n"
+            bug_demo += "First call result: " + str(len(result1)) + " items\n"
+            bug_demo += "Second call result: " + str(len(result2)) + " items\n"
+            bug_demo += "Notice how the list keeps growing between calls!\n"
+            bug_demo += "Result 2 contains: " + pprint.pformat(result2, width=60) + "\n\n"
+            
+            response_text = "Lambda Function Debug Info\n"
+            response_text += "=============================\n\n"
+            response_text += bug_demo
+            response_text += "\nEVENT:\n" + event_str + "\n"
+            response_text += "\nCONTEXT:\n" + context_str + "\n"
+            response_text += headers_section + "\n"
+            response_text += url_params_section + "\n"
+            
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'text/plain'
+                },
+                'body': response_text
+            }
+      Handler: index.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - arm64
+      FunctionUrlConfig:
+        AuthType: NONE
+
+Outputs:
+  HelloWorldFunction:
+    Description: "Hello World Lambda Function ARN"
+    Value: !GetAtt HelloWorldFunction.Arn
+  HelloWorldFunctionUrl:
+    Description: "Lambda Function URL"
+    Value: !GetAtt HelloWorldFunctionUrl.FunctionUrl
