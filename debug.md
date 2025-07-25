@@ -2,31 +2,26 @@
 
 ## Mutable Default Argument Bug
 
-This Lambda function demonstrates a classic **Mutable Default Argument Bug** - an excellent choice for debugging demonstrations.
+This Lambda function demonstrates a classic [Mutable Default Argument Bug](https://docs.python-guide.org/writing/gotchas/)
 
-### What the Bug Does:
-- The `process_user_data()` function has `metadata=[]` as a default parameter
-- In Python, default arguments are evaluated only once when the function is defined
-- The same list object is reused across all function calls, causing data to accumulate unexpectedly
+### What the bug does
+- The `process_user_data()` function has `metadata=[]` as a default parameter.
+- In Python, default arguments are evaluated only once when the function is defined.
+- The same list object is reused across all function calls, causing data to accumulate unexpectedly.
+- In case of Lambda this continues as long as the same execution environment is serving the requests.
 
-### Demo Behavior:
+### Demo behavior
 When you call your Lambda function URL:
-1. **First call**: `result1` will have 1 item
-2. **Second call**: `result2` will have 2 items (including the first call's data!)
+1. **First call**: `result` will have 1 item
+2. **Second call**: `result` will have 2 items (including the first call's data!)
 3. **Each subsequent Lambda invocation**: The list keeps growing within that container instance
 
-### Why It's Great for Debugging Demos:
-- **Subtle**: The bug isn't immediately obvious from reading the code
-- **Realistic**: This is a common Python gotcha that catches even experienced developers
-- **Observable**: You can see the bug in action by calling the function URL multiple times
-- **Educational**: Shows how Lambda container reuse affects stateful bugs
-
-### Testing the Bug:
+### Testing
 - Call your function URL: `https://your-function-url/?user_id=john`
 - Refresh the page multiple times - watch the list grow!
 - The bug persists until the Lambda container is recycled
 
-### The Fix (for your demo):
+### The Fix (for the debugging demo)
 ```python
 def process_user_data(user_id, metadata=None):
     if metadata is None:
@@ -34,13 +29,11 @@ def process_user_data(user_id, metadata=None):
     # ... rest of function
 ```
 
-This creates a perfect debugging scenario where the issue becomes apparent through repeated function calls, making it ideal for demonstrating debugging techniques and Lambda behavior!
-
-## Deployment Instructions
+## Deployment instructions
 
 1. Deploy the SAM template:
    ```bash
-   sam build && sam deploy --guided
+   aws cloudformation deploy --template-file template-bug.yaml --stack-name lambda-debug-demo --capabilities CAPABILITY_AUTO_EXPAND CAPABILITY_IAM CAPABILITY_NAMED_IAM
    ```
 
 2. Get the function URL from the outputs and test the bug by calling it multiple times
