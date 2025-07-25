@@ -20,8 +20,7 @@ Resources:
             # BUG: Mutable default argument - list persists between calls!
             metadata.append({
                 'timestamp': datetime.now().isoformat(),
-                'user_id': user_id,
-                'processed': True
+                'user_id': user_id
             })
             return metadata
         
@@ -55,7 +54,7 @@ Resources:
             if headers or multi_value_headers:
                 headers_formatted = pprint.pformat(headers, indent=2, width=80)
                 multi_headers_formatted = pprint.pformat(multi_value_headers, indent=2, width=80)
-                headers_section = "\nHEADERS:\nHeaders: " + headers_formatted + "\nMulti-Value Headers: " + multi_headers_formatted + "\n"
+                headers_section = "\nHEADERS:\nHeaders: " + headers_formatted + "\nMulti-Value Headers: " + multi_headers_formatted
             else:
                 headers_section = "\nHEADERS:\nNo headers found"
             
@@ -68,18 +67,13 @@ Resources:
             else:
                 url_params_section = "\nURL PARAMETERS:\nNo URL parameters found"
             
-            # DEMO: Demonstrate the mutable default argument bug
-            user_id = query_params.get('user_id', 'anonymous')
-            
+            # DEMO: Demonstrate the mutable default argument bug            
             # Call the buggy function - notice how metadata accumulates!
-            result1 = process_user_data(user_id)
-            result2 = process_user_data(user_id + "_second")
+            result = process_user_data(query_params.get('user_id', 'anonymous'))
             
             bug_demo = "BUG DEMONSTRATION - Mutable Default Argument:\n"
-            bug_demo += "First call result: " + str(len(result1)) + " items\n"
-            bug_demo += "Second call result: " + str(len(result2)) + " items\n"
             bug_demo += "Notice how the list keeps growing between calls!\n"
-            bug_demo += "Result 2 contains: " + pprint.pformat(result2, width=60) + "\n\n"
+            bug_demo += "process_user_data() returns: \n" + pprint.pformat(result, width=60) + "\n"
             
             response_text = "Lambda Function Debug Info\n"
             response_text += "=============================\n\n"
